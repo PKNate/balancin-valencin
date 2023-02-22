@@ -1,0 +1,30 @@
+$ cat .gitignore
+# exclude everything except directories specified
+
+/Codigo/*
+!/Codigo/prog18f4550
+!/Codigo/balancin2023.cpp
+!/Codigo/balancingraf.m
+!/Codigo/estrategia-base-balancin.pdf
+
+/Codigo/prog18f4550/*
+!/Codigo/prog18f4550/balancin.c
+!/Codigo/prog18f4550/balancin.hex
+
+/PCB/*
+!/PCB/PCB-Balancin.pdsprj
+
+/Pruebas/CLK/*
+!/Pruebas/CLK/test.c
+
+/Pruebas/Encoder/*
+!/Pruebas/Encoder/encoders.c
+
+/Pruebas/MPU y RS232/*
+!/Pruebas/Encoder/gyro_test.c
+!/Pruebas/Encoder/mpu6050.c
+!/Pruebas/Encoder/mpu6050.h
+!/Pruebas/Encoder/mpu6050.h
+
+/Pruebas/Sensores/*
+!/Pruebas/Sensores/sensor_test.c
