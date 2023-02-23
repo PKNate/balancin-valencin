@@ -28,3 +28,5 @@ $ cat .gitignore
 
 /Pruebas/Sensores/*
 !/Pruebas/Sensores/sensor_test.c
+!/Pruebas/Sensores/VL53L0X.c
+!/Pruebas/Sensores/VL53L0X.h
