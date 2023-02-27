@@ -130,15 +130,15 @@ void rda_isr()
          urI = getc();//obteniendo el dato
          if(urI>=128)
             {
-               output_low(pin_E0);
-               output_high(pin_E1);
+               output_low(pin_E1);
+               output_high(pin_E0);
                urI=urI-128;
                pwm2=urI<<1;
             }
          else
             {
-               output_high(pin_E0);
-               output_low(pin_E1);
+               output_high(pin_E1);
+               output_low(pin_E0);
                pwm2=urI<<1;
             }
          set_pwm2_duty(pwm2);   //actualizando el valor del pwm
@@ -189,13 +189,25 @@ void rb_isr()
        if(auxCD!=3)
        {
           if(((CD_1<<1)^CD)&(0x02))
-             posI--;
-          else
              posI++;
+          else
+             posI--;
        }
     CD_1 = CD;
 }
 
+int8 readSensors()
+{
+   int8 helper=0;
+   if(!input(PIN_A1))
+      helper=helper | 0b00000001;
+   if(!input(PIN_A2))
+      helper=helper | 0b00000010;   
+   if(!input(PIN_A3))
+      helper=helper | 0b00000100; 
+   
+   return helper;
+}
 
 int main()
 {  
@@ -242,6 +254,7 @@ int main()
       // Leemos los datos del MPU
       MPU6050_get_Ax();
       MPU6050_get_Gy();
+      sensores=readSensors();
       
       // Enviamos bytes al puerto serial
       putc(0xAA);          // ID a la PC

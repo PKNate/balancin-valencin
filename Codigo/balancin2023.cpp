@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string.h>
-#include<dos.h>
+#include <dos.h>
 #include <windows.h>
 #include <stdio.h>
 #include <math.h>
@@ -9,28 +9,28 @@
 #include <stdbool.h> 
 
 #define Ts      0.01
-#define ppr     12.0
+#define ppr     12.0 	//48 vueltas por revolucion (12*4)
 #define pi_     3.141593
-#define NR      34.0
+#define NR      34.02
 
-#define KP  80.0
-#define KD  0.07
+#define KP  45.0			//45.0
+#define KD  0.01			//0.01
 
-#define KPI  1.5
-#define KII  12.0
+#define KPI  1.4			//1.4
+#define KII  8.0 			//8.0
 
-#define KPD  1.5
-#define KID  12.0
+#define KPD  1.4			//1.4
+#define KID  8.0			//8.0
 
-#define VM     10.5
-#define VNM    10.0
+#define VM     10.37		//Poner capacidad real
+#define VNM    10.0		    //Cuanto es lo máximo que quiero mandar
 
-#define omegaA 0.0//0.2//0.8
+#define omegaA -1.0		//Avance (negativo -> hacia delante) //-1.0 //-10.0 //-15.0
 
-#define phi_hor -0.100 //0.085 //-0.24//-0.61//-0.26
-#define alphap -0.36
+#define phi_hor -0.080		//-0.080 //-0.138 //-0.160 //-0.400
+#define alphap -0.36		//Inclinación //-0.200
 
-#define omegaM 20.0
+#define omegaM 20.0			//Velocidad máxima (rad/s)
 
 #define deg_2_rad 			pi_/180 
 #define rad_2_deg 			180/pi_
@@ -39,7 +39,7 @@
 #define accel_factor 		1/accel_div_factor
 #define gyro_factor 		1/gyro_div_factor
 
-#define c1 0.993
+#define c1 0.993		//filtro complementario
 
 
 //PROTOTIPOS DE FUNCIONES
@@ -51,7 +51,7 @@ signed char incD,incI;
 // Valores del MPU
 signed short int Ax,Gy;
 //Variables para filtro complementario y ángulos
-float Xa,Yg,phid=phi_hor,phi_1=0.0,phi=0;;
+float Xa,Yg,phid=phi_hor,phi_1=0.0,phi=0;
 float accelx=0,angulox=0,angulox_1=0,c2=1-c1;
 // Variables auxiliares
 float t=0,iTs=1/Ts,esc=pi_/(2*ppr*NR),escs=127.0/VM;
@@ -69,13 +69,13 @@ float uD=0,uI=0;
 unsigned char uRD,uRI;
 
 // Ponderación de velocidades
-float KVI=1, KVD=0.8;
+float KVI=1, KVD=1;
 
 // Sensores
 unsigned int sensores;
-bool sensor_SI = true;
-bool sensor_SD = true;
-bool sensor_SP = true;
+bool sensor_LI = false;
+bool sensor_LD = false;
+bool sensor_LC = false;
 
 // Componentes controladores
 float proporcional=0,derivativa=0,proporcionalD=0,integralD=0,proporcionalI=0,integralI=0;
@@ -192,9 +192,17 @@ int main()
    				// Leer sensores de seguidor y de obstáculo.
 					sensores=recibido;
 				// Convertir el valor de los sensores a bits separados.
-					sensor_SI=(sensores & 0x01);
-					sensor_SD=(sensores & 0x02)>>1;
-					sensor_SP=(sensores & 0x04)>>2;
+					sensor_LI=(sensores & 0x04)>>2;
+					sensor_LC=(sensores & 0x02)>>1;
+					sensor_LD=(sensores & 0x01);
+					
+					if(!sensor_LI)
+						{KVI=0.5; KVD=2.3;}
+					else if(!sensor_LD)
+						{KVI=2.3; KVD=0.5;}
+					else
+						{KVI=1.0; KVD=1.0;}
+					
 				// Calulo velocidad derecha.
         			omegaD=incD*esc*iTs;
 				// Calculo velocidad izquierda.
@@ -228,11 +236,11 @@ int main()
 					omegadI = KVI*omegad;
 					omegadD = KVD*omegad;
 					
-					//omegadI = 10*sin(6.28*t);
-					//omegadD = 10*cos(6.28*t);
+					//omegadI = omegaM*sin(0.628*t);
+					//omegadD = omegaM*cos(0.628*t);
 					
-					//omegadI = 10;
-					//omegadD = 10;
+					//omegadI = 6.28;
+					//omegadD = -6.28;
 					
 					//Lazo esclavo izquierdo
 					eI_1 = eI;					
@@ -250,7 +258,7 @@ int main()
 					uI=proporcionalI+integralI;
 					//uI=VNM*sin(0.3141*t);
 	                //uI=0;
-	                //uI=3;
+	                //uI=2.0;
 					if(uI>=VM)
         			    uI=VM;
 			        if(uI<=(-VM))
@@ -277,9 +285,9 @@ int main()
         		     	integralD=-0.95*VM;
 	                }
 					uD=proporcionalD+integralD;
-					//uD=VNM*sin(0.3141*t);
+					//uD=VM*sin(0.3141*t);
 	                //uD=0;
-	                //uD=3;
+	                //uD=2.0;
 					if(uD>=VM)
         			    uD=VM;
 			        if(uD<=(-VM))
@@ -294,12 +302,13 @@ int main()
 
 	                //Imprimiendo en pantalla
 	                //printf("%i\t\n", pos);
-	                printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%d\n",t,uI,uD, omegaI, omegaD, incI, incD);
-					//printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%d\n",t,uI,uD, omegaI, omegaD, incI, incD);
-					//printf("%.2f\t%d\t%d\t%d\t%d\n",t,posD, posI,Ax,Gy);
-	    			//printf("%.3f\t%.3f\n",phid, phi);
+	                //printf("%.2f\t%.2f\t%.2f\n",t,uI,uD);
+					//printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%d\n",t,uI,uD,omegaI,omegaD,incI,incD);
+					//printf("%.2f\t%d\t%d\n",t,Ax,Gy);
+	    			//printf("%.3f\t%.3f\t%.3f\t%.3f\n",phid, phi, uI, uD);
+	    			printf("%.2f\t%d\t%d\t%d\n",t,sensor_LI, sensor_LC, sensor_LD);
 					/*escribir algunos datos en el archivo*/
-	    			fprintf(fp,"%.2f\t%.3f\t%.3f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%i\t%i\t%i\n",t,phid,phi,omegadI,omegaI,omegadD,omegaD,uI,uD,sensor_SP,sensor_SI,sensor_SD);
+	    			fprintf(fp,"%.2f\t%.3f\t%.3f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%i\t%i\t%i\n",t,phid,phi,omegadI,omegaI,omegadD,omegaD,uI,uD,sensor_LI,sensor_LC,sensor_LD);
 	    			t=t+Ts;//t+=Ts;
 	    			flagcom=0;
 					

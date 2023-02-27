@@ -19,8 +19,8 @@ void timer1_isr() {
 #include <VL53L0X.c>
 
 //#define LONG_RANGE
-//#define HIGH_SPEED
-#define HIGH_ACCURACY
+#define HIGH_SPEED
+//#define HIGH_ACCURACY
 
 #if defined HIGH_SPEED
   // reduce timing budget to 20 ms (default is about 33 ms)
