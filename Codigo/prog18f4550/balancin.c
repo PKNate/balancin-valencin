@@ -150,15 +150,15 @@ void rda_isr()
       urD = getc();//obteniendo el dato
          if(urD>=128)
             {
-               output_low(pin_D0);
-               output_high(pin_D1);
+               output_low(pin_D1);
+               output_high(pin_D0);
                urD=urD-128;
                pwm1=urD<<1;
             }
          else
             {
-               output_high(pin_D0);
-               output_low(pin_D1);
+               output_high(pin_D1);
+               output_low(pin_D0);
                pwm1=urD<<1;
             }
          set_pwm1_duty(pwm1);   //actualizando el valor del pwm
@@ -177,9 +177,9 @@ void rb_isr()
        if(auxAB!=3)
        {
           if(((AB_1<<1)^AB)&(0x02))
-             posD--;
-          else
              posD++;
+          else
+             posD--;
        }
     AB_1=AB;
     
@@ -189,9 +189,9 @@ void rb_isr()
        if(auxCD!=3)
        {
           if(((CD_1<<1)^CD)&(0x02))
-             posI++;
-          else
              posI--;
+          else
+             posI++;
        }
     CD_1 = CD;
 }

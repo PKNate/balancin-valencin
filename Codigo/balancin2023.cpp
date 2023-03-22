@@ -13,8 +13,8 @@
 #define pi_     3.141593
 #define NR      34.02
 
-#define KP  45.0			//45.0
-#define KD  0.01			//0.01
+#define KP  35.0			//40.0 //45.0
+#define KD  0.005			//0.01
 
 #define KPI  1.4			//1.4
 #define KII  8.0 			//8.0
@@ -25,10 +25,11 @@
 #define VM     10.37		//Poner capacidad real
 #define VNM    10.0		    //Cuanto es lo máximo que quiero mandar
 
-#define omegaA -1.0		//Avance (negativo -> hacia delante) //-1.0 //-10.0 //-15.0
+#define omega_Avance -0.1		//Avance (negativo -> hacia delante) //-1.0 //-10.0 //-15.0 //-2.0
+#define omega_Pendiente -0.5	//-10
 
-#define phi_hor -0.080		//-0.080 //-0.138 //-0.160 //-0.400
-#define alphap -0.36		//Inclinación //-0.200
+#define phi_hor -0.108		//-0.123 //-0.080 //-0.138 //-0.160 //-0.400 //-0.115
+#define alphap -0.280		//Inclinación //-0.200 //-0.330
 
 #define omegaM 20.0			//Velocidad máxima (rad/s)
 
@@ -71,11 +72,15 @@ unsigned char uRD,uRI;
 // Ponderación de velocidades
 float KVI=1, KVD=1;
 
+//Avance
+float omegaA=omega_Avance;
+
 // Sensores
 unsigned int sensores;
 bool sensor_LI = false;
 bool sensor_LD = false;
 bool sensor_LC = false;
+bool sensor_P = false;
 
 // Componentes controladores
 float proporcional=0,derivativa=0,proporcionalD=0,integralD=0,proporcionalI=0,integralI=0;
@@ -195,13 +200,31 @@ int main()
 					sensor_LI=(sensores & 0x04)>>2;
 					sensor_LC=(sensores & 0x02)>>1;
 					sensor_LD=(sensores & 0x01);
-					
-					if(!sensor_LI)
-						{KVI=0.5; KVD=2.3;}
-					else if(!sensor_LD)
-						{KVI=2.3; KVD=0.5;}
+				//Seguidor de línea	
+				if(sensor_P == false)
+				{
+					if(phi<phid)
+					{
+						if(sensor_LI && !sensor_LD)
+							if(sensor_LC)	{KVI=0.8; KVD=1.4;} //0.8, 1.2
+							else 			{KVI=0.7; KVD=1.6;}	//0.7, 1.4
+							
+						else if(!sensor_LI && sensor_LD)
+							if(sensor_LC)	{KVI=1.4; KVD=0.8;}
+							else 			{KVI=1.6; KVD=0.7;}
+								
+						else if(sensor_LI && sensor_LC && sensor_LD)
+							{sensor_P = 1; phid=alphap; omegaA=omega_Pendiente;}
+								
+						else
+							{KVI=1.0; KVD=1.0;}			
+					}
 					else
 						{KVI=1.0; KVD=1.0;}
+				}
+				else
+					{KVI=1.0; KVD=1.0;}
+				
 					
 				// Calulo velocidad derecha.
         			omegaD=incD*esc*iTs;
@@ -306,9 +329,9 @@ int main()
 					//printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%d\n",t,uI,uD,omegaI,omegaD,incI,incD);
 					//printf("%.2f\t%d\t%d\n",t,Ax,Gy);
 	    			//printf("%.3f\t%.3f\t%.3f\t%.3f\n",phid, phi, uI, uD);
-	    			printf("%.2f\t%d\t%d\t%d\n",t,sensor_LI, sensor_LC, sensor_LD);
+	    			printf("%.2f\t%.2f\t%.2f\t%d\t%d\t%d\t%d\n",t,phid,phi,sensor_LI, sensor_LC, sensor_LD, sensor_P);
 					/*escribir algunos datos en el archivo*/
-	    			fprintf(fp,"%.2f\t%.3f\t%.3f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%i\t%i\t%i\n",t,phid,phi,omegadI,omegaI,omegadD,omegaD,uI,uD,sensor_LI,sensor_LC,sensor_LD);
+	    			fprintf(fp,"%.2f\t%.3f\t%.3f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%i\t%i\t%i\t%i\n",t,phid,phi,omegadI,omegaI,omegadD,omegaD,uI,uD,sensor_LI,sensor_LC,sensor_LD,sensor_P);
 	    			t=t+Ts;//t+=Ts;
 	    			flagcom=0;
 					
