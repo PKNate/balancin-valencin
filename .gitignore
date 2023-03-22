@@ -32,3 +32,7 @@ $ cat .gitignore
 !/Pruebas/Sensores/VL53L0X.h
 
 /Pruebas/CalibracionMPU6050/*
+
+/Pruebas/Embebido/*
+!/Pruebas/Embebido/balancin_embebido.c
+!/Pruebas/Embebido/balancin2023_referencia.cpp
