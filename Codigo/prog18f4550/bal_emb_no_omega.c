@@ -60,13 +60,13 @@ float KII = 8.0;     //8.0;
 float KPD = 2.0;     //1.4;
 float KID = 8.0;     //2.0 //8.0;
 
-float KPP = 60.0;
-float KDP = 0.5;
-float KIP = 30.0;
-float omegaP_d = 15.0;
+float KPP = 0.05;
+float KDP = 0.0001;
+float KIP = 0.01;
+float omegaP_d = 2.0;
 
 //-0.1495; //-0.1485; //-0.1435; //-0.1375; //-0.1335;//-0.108;
-float phi_max = -0.1375;
+float phi_max = -0.1495;
 float phi_min = -0.5330;
 
 float VM = 10.37;
@@ -318,12 +318,10 @@ int main()
       phi=angulox*deg_2_rad;
       // Promedio velocidad
       omegaP = ((omegaD / KVD) + (omegaI / KVI))/2.0;
-      // Calcular el error de angulo
-      e_1 = e;
-      e=phid-phi;
       // Calcular el error de omega
       eP_1 = eP;
       eP = omegaP_d-omegaP;
+      eP = eP * (-1.0);
       
 // -------------------------- Lazo Inclinacion --------------------------------   
       proporcionalP=KPP*eP;
@@ -342,7 +340,11 @@ int main()
       if(phid > phi_max)
          phid = phi_max;
       if(phid < phi_min)
-         phid = phi_min;   
+         phid = phi_min;
+         
+      // Calcular el error de angulo
+      e_1 = e;
+      e=phid-phi;    
  
 // ------------------------- Seguidor de linea --------------------------------  
       if(sensor_LI && !sensor_LD)
