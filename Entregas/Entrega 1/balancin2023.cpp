@@ -40,11 +40,11 @@
 #define accel_factor 		1/accel_div_factor
 #define gyro_factor 		1/gyro_div_factor
 
-#define c1 0.993		//filtro complementario
-
+#define cf 0.007
 
 //PROTOTIPOS DE FUNCIONES
 unsigned char v_to_pwm(float voltage);
+
 
 
 unsigned char flagcom=0,flagfile=0,signo_sal,pwm,posD,posI,ang; //de 8 bits
@@ -53,7 +53,7 @@ signed char incD,incI;
 signed short int Ax,Gy;
 //Variables para filtro complementario y ángulos
 float Xa,Yg,phid=phi_hor,phi_1=0.0,phi=0;
-float accelx=0,angulox=0,angulox_1=0,c2=1-c1;
+float accelx=0,angulox=0,angulox_1=0,c1=1-cf;
 // Variables auxiliares
 float t=0,iTs=1/Ts,esc=pi_/(2*ppr*NR),escs=127.0/VM;
 // Velocidades deseadas
@@ -235,7 +235,7 @@ int main()
         			Yg=Gy*gyro_factor;
         			// Calculo de filtro complementario
         			accelx=Xa*90;//inclinación de -90 a 90 grados de balancin
-        			angulox=c1*(angulox_1+Yg*Ts)+c2*accelx;//ecuación del filtro, Yg en grados sobre segundo
+        			angulox=c1*(angulox_1+Yg*Ts)+cf*accelx;//ecuación del filtro, Yg en grados sobre segundo
         			angulox_1=angulox;//respaldando valor pasado
         			phi=angulox*deg_2_rad;//conversión a rad
 

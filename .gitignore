@@ -3,13 +3,13 @@ $ cat .gitignore
 
 /Codigo/*
 !/Codigo/prog18f4550
-!/Codigo/balancin2023.cpp
+!/Codigo/balancin2023_embebido.cpp
 !/Codigo/balancingraf.m
 !/Codigo/estrategia-base-balancin.pdf
 
 /Codigo/prog18f4550/*
-!/Codigo/prog18f4550/balancin.c
-!/Codigo/prog18f4550/balancin.hex
+!/Codigo/prog18f4550/bal_emb_no_omega.c
+!/Codigo/prog18f4550/bal_emb_no_omega.hex
 
 /PCB/*
 !/PCB/PCB-Balancin.pdsprj
