@@ -29,8 +29,8 @@ set(legend('$\phi_d[rad]$','$\phi[rad]$'), 'interpreter', 'latex')
 grid on;
 
 subplot(6,1,2)
-plot(t,omegadI,t,omegaI);
-set(legend('$\omega_{dI}[\frac{rad}{s}]$','$\omega_I[\frac{rad}{s}]$'), 'interpreter', 'latex')
+plot(t,omegadI,t,omegaI,t,omegadP,t,omegaP);
+set(legend('$\omega_{dI}[\frac{rad}{s}]$','$\omega_I[\frac{rad}{s}]$','$\omega_{dP}[\frac{rad}{s}]$','$\omega_P[\frac{rad}{s}]$'), 'interpreter', 'latex')
 grid on;
 
 subplot(6,1,3)
@@ -39,8 +39,8 @@ set(legend('$u_I[V]$'), 'interpreter', 'latex')
 grid on;
 
 subplot(6,1,4)
-plot(t,omegadD,t,omegaD);
-set(legend('$\omega_{dD}[\frac{rad}{s}]$','$\omega_D[\frac{rad}{s}]$'), 'interpreter', 'latex')
+plot(t,omegadD,t,omegaD,t,omegadP,t,omegaP);
+set(legend('$\omega_{dD}[\frac{rad}{s}]$','$\omega_D[\frac{rad}{s}]$','$\omega_{dP}[\frac{rad}{s}]$','$\omega_P[\frac{rad}{s}]$'), 'interpreter', 'latex')
 grid on;
 
 subplot(6,1,5)
@@ -52,9 +52,4 @@ subplot(6,1,6)
 plot(t,sI,t,sC,t,sD,t,sP);
 set(legend('$sI$','$sC$','$sD$','$sP$'), 'interpreter', 'latex')
 xlabel('$t[s]$', 'interpreter', 'latex')
-grid on;
-
-subplot(6,1,7)
-plot(t,omegadP,t,omegaP);
-set(legend('$\omega_{dP}[\frac{rad}{s}]$','$\omega_P[\frac{rad}{s}]$'), 'interpreter', 'latex')
 grid on;
