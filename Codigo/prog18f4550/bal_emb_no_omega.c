@@ -7,7 +7,7 @@
 #use RS232(BAUD = 115200, XMIT = PIN_C6, RCV = PIN_C7, BITS = 8, PARITY = N)
 #use I2C(MASTER, SDA=PIN_B0, SCL=PIN_B1, SLOW)
 
-//direcciones de los puertos
+// ---------------------- Direcciones de los puertos --------------------------
 #byte porta = 0xf80
 #byte portb = 0xf81
 #byte portc = 0xf82
@@ -44,77 +44,66 @@
 #byte T0CON = 0xfd5 //T0CON
 #byte INTCON= 0xff2 //INTCON
 
-///////////////////////////////////////////////////////////////////////////
-// Variables de cpp
+// --------------------------- Variables de CPP -------------------------------
 float Ts = 0.01;
 float ppr = 12.0;
 float pi_ = 3.141593;
 float NR = 34.02;
 
-float KP = 35.0;//35.0;
-float KD = 0.53;//0.005;
-float KI = 158.0;//158.0;
+float KP = 35.0;     //35.0;
+float KD = 0.53;     //0.005;
+float KI = 158.0;    //158.0;
 
-float KPI = 2.0;//2.0 //1.4;
-float KII = 8.0;//8.0;
+float KPI = 2.0;     //2.0 //1.4;
+float KII = 8.0;     //8.0;
 
-float KPD = 2.0;//1.4;
-float KID = 8.0;//2.0 //8.0;
+float KPD = 2.0;     //1.4;
+float KID = 8.0;     //2.0 //8.0;
+
+float KPP = 60.0;
+float KDP = 0.5;
+float KIP = 30.0;
+float omegaP_d = 15.0;
+
+//-0.1495; //-0.1485; //-0.1435; //-0.1375; //-0.1335;//-0.108;
+float phi_max = -0.1375;
+float phi_min = -0.5330;
 
 float VM = 10.37;
-
-//En equilibrio: Avance = 0,     phi_hor = -0.1375
-//Seguidor     : Avance = -1.5,  phi_hor = -0.1485
-
-//La parte integral cancela la omega de avance.
-float omega_Avance = 0; //-1.5; 
-float omega_Pendiente = -0;
-
-float phi_hor = -0.1495; //-0.1485; //-0.1435; //-0.1375; //-0.1335;//-0.108;
-float alphap = -0.430;
-
 float omegaM = 20.0;
 
 float deg_2_rad = 3.141593/180;
-//float rad_2_deg = 180/3.141593;
-//float accel_div_factor = 16384.0;
 float accel_factor = 1/16384.0;
 float gyro_factor = 1/131.0;
 
-// Cambio para que coincida con el marco teórico
+// Cambio para que coincida con el marco teorico
 float cf = 0.007;
 float c1 = 1 - cf;
 
-//PROTOTIPOS DE FUNCIONES
+// Funcion voltaje a pwm
 unsigned int v_to_pwm(float voltage);
-
 
 unsigned int pwm,posD,posI; //de 8 bits
 signed int incD,incI;
 // Valores del MPU
 signed long int Ax,Gy;
-//Variables para filtro complementario y ángulos
-float Xa,Yg,phid=phi_hor,phi=0;
-float accelx=0,angulox=0,angulox_1=0;
+// Variables para filtro complementario y ángulos
+float Xa, Yg, phid=phi_max, phi=0;
+float accelx=0, angulox=0, angulox_1=0;
 // Variables auxiliares
-float t=0,iTs=1/Ts,esc=pi_/(2*ppr*NR),escs=127.0/VM;
+float iTs=1/Ts, esc=pi_/(2*ppr*NR), escs=127.0/VM;
 // Velocidades deseadas
 float omegadD=0, omegadI=0;
 // Velocidades
-float omegaD=0,omegaI=0;
+float omegaD=0,omegaI=0,omegaP=0;
 // Errores actuales y anteriores
-float eD,eD_1=0,eI,eI_1=0,e,e_1=0; 
-// omega deseada
+float eD,eD_1=0,eI,eI_1=0,e,e_1=0,eP,eP_1=0; 
+// Omega deseada
 float omegadeseada=0;
 // Esfuerzos de control
 float uD=0,uI=0;
-// salida de pwm a motores
-
-// Ponderación de velocidades
+// Ponderacion de velocidades
 float KVI=1, KVD=1;
-
-//Avance
-float omegaA=omega_Avance;
 
 // Sensores
 unsigned int sensores;
@@ -124,22 +113,23 @@ short int sensor_LC = 0;
 short int sensor_P = 0;
 
 // Componentes controladores
-float proporcional=0,derivativa=0,proporcionalD=0,integralD=0,proporcionalI=0,integralI=0;
+float proporcional=0, derivativa=0, proporcionalD=0, integralD=0,
+proporcionalI=0, integralI=0, proporcionalP=0, derivativaP=0, integralP=0;
 float integral = 0;
-/////////////////////////////////////////////////////////////////////////////////
 
-// Variables a usar.
-int8 urI=0 ,urD=0;                // Variables para recibir por el puerto UART.
-int8 pwm1 = 0, pwm2 = 0;      // Variables para setear el valor PWM de cada motor.
-int8 puerto=0 ,AB=0 ,AB_1=0 ,CD=0 ,CD_1=0 ,auxAB=0 , auxCD =0; // Variables auxiliares en la lectura de encoders.
+// ---------------------------- Variables a usar ------------------------------
+int8 urI=0 ,urD=0;                                             
+int8 pwm1 = 0, pwm2 = 0;                                       
+int8 puerto=0 ,AB=0 ,AB_1=0 ,CD=0 ,CD_1=0 ,auxAB=0 , auxCD =0; 
 
-signed int8 A_data_x[2];      // Lectura Ax del MPU
-signed int8 A_data_y[2];      // Lectura Ay del MPU
-signed int8 A_data_z[2];      // Lectura Az del MPU
-signed int8 G_data_y[2];      // Lectura Gy del MPU
+signed int8 A_data_x[2];                                       
+signed int8 A_data_y[2];                                       
+signed int8 A_data_z[2];                                       
+signed int8 G_data_y[2];                                       
 
 // Variables para el escalado.
-signed int8 phi_esc=0, omegadI_esc=0, omegaI_esc=0, omegadD_esc=0, omegaD_esc=0, uI_esc=0, uD_esc=0;
+signed int8 phi_esc=0, phid_esc=0, omegadI_esc=0, omegaI_esc=0, omegadD_esc=0,
+omegaD_esc=0, omegaP_esc=0, uI_esc=0, uD_esc=0;
 float temp;
 
 // Funcion para escribir al MPU6050
@@ -152,7 +142,7 @@ void MPU6050_write(int add, int data)
    i2c_stop();
 }
 
-// Función para leer datos del MPU.
+// Funcion para leer datos del MPU.
 int16 MPU6050_read(int add)
 {
    int retval;
@@ -166,7 +156,7 @@ int16 MPU6050_read(int add)
    return retval;
 }
 
-// Función para iniciar el MPU
+// Funcion para iniciar el MPU
 void MPU6050_init()
 {
    MPU6050_write(PWR_MGMT_1, 0x80);
@@ -178,28 +168,28 @@ void MPU6050_init()
    MPU6050_write(GYRO_CONFIG, 0x00);
 }
 
-// Función para leer el valor Ax del MPU
+// Funcion para leer el valor Ax del MPU
 void MPU6050_get_Ax()
 {
    A_data_x[0] = MPU6050_read(ACCEL_XOUT_H);
    A_data_x[1] = MPU6050_read(ACCEL_XOUT_L);
 }
 
-// Función para leer el valor Ay del MPU
+// Funcion para leer el valor Ay del MPU
 void MPU6050_get_Ay()
 {
    A_data_y[0] = MPU6050_read(ACCEL_YOUT_H);
    A_data_y[1] = MPU6050_read(ACCEL_YOUT_L);
 }
 
-// Función para leer el valor Az del MPU
+// Funcion para leer el valor Az del MPU
 void MPU6050_get_Az()
 {
    A_data_z[0] = MPU6050_read(ACCEL_ZOUT_H);
    A_data_z[1] = MPU6050_read(ACCEL_ZOUT_L);
 }
 
-// Función para leer el valor Gy del MPU
+// Funcion para leer el valor Gy del MPU
 void MPU6050_get_Gy()
 {
    G_data_y[0] = MPU6050_read(GYRO_YOUT_H);
@@ -251,60 +241,45 @@ int8 readSensors()
 
 int main()
 {  
-   // Seteamos como entradas o salidas.
-   //set_tris_a(0b11111111);
-   //set_tris_b(0b11110011);
-   //set_tris_c(0b01000000);
-   //set_tris_d(0b11110000);
-   //set_tris_e(0b11111111);
-   
    // Iniciar el MPU
-   MPU6050_init();   // Inicializa MPU6050
+   MPU6050_init();
    
-   T0CON = 0xC7; //prescaler asignado a timer0 con relación 1:256
+   // Prescaler asignado a timer0 con relación 1:256
+   T0CON = 0xC7; 
    TMR0L = 0;
-   //setup_timer_0(T0_INTERNAL | T0_DIV_8);
-   //set_timer0((int16)0);
    
    // Setear variables para cuentas de encoder a 0
    AB=0;
    AB_1=0;
-   // Inicio de cuentas encoder derecho a mitad del rango para que no desborde
+   // Inicio de cuentas encoder derecho a mitad del rango
    posD=127;
    // Setear variables para cuentas de encoder a 0
    CD=0;
    CD_1=0;
-   // Inicio de cuentas encoder izquierdo a mitad del rango para que no desborde
+   // Inicio de cuentas encoder izquierdo a mitad del rango
    posI=127;
    
    // Seteamos el timer con configuraciones a PWM.    // 1225 Hz
     setup_timer_2(T2_DIV_BY_16,254,1);
 
    // Seteamos pines 16 y 17 del 4550 como PWM
-   setup_ccp1(CCP_PWM);       //configurando pwm
-   setup_ccp2(CCP_PWM);       //configurando pwm 
+   setup_ccp1(CCP_PWM);
+   setup_ccp2(CCP_PWM);
    
    // Se habilitan interrupciones.
    enable_interrupts(int_rb);
    enable_interrupts(int_rda);
    enable_interrupts(global);
-   
-   printf("Inicio\r\n");
-   
+
    while(true)
    {
-      // Leemos puertos de los sensores de seguidor y detector de obstáculo para pendiente.
-      //sensores = (portd & 0x70) >> 4;
-      // Leemos los datos del MPU
+// ----------------------- Lectura de sensores --------------------------------
+      // Leemos sensores
       MPU6050_get_Ax();
       MPU6050_get_Gy();
       sensores=readSensors();
       
-      incD = 127-posD;
-      incI = 127-posI;
-      posD = 127;
-      posI = 127;
-
+      // Ajuste de datos de MPU
       Ax = A_data_x[0];
       Ax = Ax << 8;
       Ax = Ax + A_data_x[1];
@@ -313,174 +288,184 @@ int main()
       Gy = Gy << 8;
       Gy = Gy + G_data_y[1];
       
-      // Leer sensores de seguidor y de obstáculo.
-      // Convertir el valor de los sensores a bits separados.
-      
+      // Ajuste de datos de seguidores de linea
       sensor_LI=(sensores & 0x04)>>2;
       sensor_LC=(sensores & 0x02)>>1;
       sensor_LD=(sensores & 0x01);
       
-      
-      //Seguidor de línea   
-      if(sensor_P == 0)
-      {
-         //if(phi<phid)
-         //{
-            if(sensor_LI && !sensor_LD)
-               if(sensor_LC)   {KVI=0.7; KVD=1.8;}   //0.8, 1.4
-               else            {KVI=0.4; KVD=2.2;}   //0.7, 1.6
-               
-            else if(!sensor_LI && sensor_LD)
-               if(sensor_LC)   {KVI=1.8; KVD=0.7;}
-               else            {KVI=2.2; KVD=0.4;}
-                  
-            else if(sensor_LI && sensor_LC && sensor_LD)
-               {sensor_P = 1; phid=alphap; omegaA=omega_Pendiente;}
-                  
-            else
-               {KVI=1.0; KVD=1.0;}         
-         //}
-         //else
-         //   {KVI=1.0; KVD=1.0;}
-      }
-      else
-         {KVI=1.0; KVD=1.0;}
-      
-      // Calulo velocidad derecha.
-         omegaD=incD*esc*iTs;
+      // Resetear cuentas a la mitad
+      incD = 127-posD;
+      incI = 127-posI;
+      posD = 127;
+      posI = 127;
+
+// ------------------------- Calculos requeridos ------------------------------
+      // Calculo velocidad derecha.
+      omegaD=incD*esc*iTs;
       // Calculo velocidad izquierda.
-         omegaI=incI*esc*iTs;
-        // Los valores del MPU los paso a valores flotantes con sus respectivas escalas.
-         Xa=-Ax*accel_factor;
-         Yg=Gy*gyro_factor;
-           // Calculo de filtro complementario
-         accelx=Xa*90;//inclinación de -90 a 90 grados de balancin
-         angulox=c1*(angulox_1+Yg*Ts)+cf*accelx;//ecuación del filtro, Yg en grados sobre segundo
-         angulox_1=angulox;//respaldando valor pasado
-         phi=angulox*deg_2_rad;//conversión a rad
+      omegaI=incI*esc*iTs;
+      // Los valores del MPU los paso a valores flotantes.
+      Xa=-Ax*accel_factor;
+      Yg=Gy*gyro_factor;
+      // Calculo de filtro complementario
+      // Inclinacion de -90 a 90 grados
+      accelx=Xa*90;
+      // Ecuacion del filtro, Yg en grados sobre segundo
+      angulox=c1*(angulox_1+Yg*Ts)+cf*accelx;
+      // Respaldando valor pasado
+      angulox_1=angulox;
+      // Conversion a rad
+      phi=angulox*deg_2_rad;
+      // Promedio velocidad
+      omegaP = ((omegaD / KVD) + (omegaI / KVI))/2.0;
+      // Calcular el error de angulo
+      e_1 = e;
+      e=phid-phi;
+      // Calcular el error de omega
+      eP_1 = eP;
+      eP = omegaP_d-omegaP;
+      
+// -------------------------- Lazo Inclinacion --------------------------------   
+      proporcionalP=KPP*eP;
+      derivativaP=KDP*(eP-eP_1)*iTs;
+      if((integralP < phi_max) && (integralP > phi_min))
+         integralP=integralP+KIP*Ts*eP;
+      else
+      {
+         if(integralP>=phi_max)
+            integralP=0.95*phi_max;
+         if(integralP<=phi_min)
+            integralP=-0.95*phi_min;
+      }
+      phid=proporcionalP+derivativaP+integralP;
+      //Saturacion de phid
+      if(phid > phi_max)
+         phid = phi_max;
+      if(phid < phi_min)
+         phid = phi_min;   
+ 
+// ------------------------- Seguidor de linea --------------------------------  
+      if(sensor_LI && !sensor_LD)
+         if(sensor_LC)   {KVI=0.7; KVD=1.8;}   //0.8, 1.4
+         else            {KVI=0.4; KVD=2.2;}   //0.7, 1.6
          
-         // Calcular el error de angulo
-         e_1 = e;
-         e=phid-phi;
-         // Lazo Maestro
-         proporcional=KP*e;
-         derivativa=KD*(e-e_1)*iTs;
-         if((integral<VM)&&(integral>(-VM)))
-            integral=integral+KI*Ts*e;
-         else
+      else if(!sensor_LI && sensor_LD)
+         if(sensor_LC)   {KVI=1.8; KVD=0.7;}
+         else            {KVI=2.2; KVD=0.4;}
+                   
+      else
+         {KVI=1.0; KVD=1.0;}  
+     
+// -------------------------- Lazo Maestro ------------------------------------
+      proporcional=KP*e;
+      derivativa=KD*(e-e_1)*iTs;
+      if((integral<VM)&&(integral>(-VM)))
+         integral=integral+KI*Ts*e;
+      else
+      {
+         if(integral>=VM)
+            integral=0.95*VM;
+         if(integral<=(-VM))
+            integral=-0.95*VM;
+      }
+      omegadeseada=proporcional+derivativa+integral;
+      //omegadeseada=omegadeseada+omegaA;
+      //omegadeseada=15*sin(6.28*t);
+      //omegadeseada=6.28;
+      
+      //Saturacion de omega deseada
+      if(omegadeseada > omegaM)
+         omegadeseada = omegaM;
+      if(omegadeseada < -omegaM)
+         omegadeseada = -omegaM;
+      
+      omegadI = KVI*omegadeseada;
+      omegadD = KVD*omegadeseada;
+      //omegadI = omegaM*sin(0.628*t);
+      //omegadD = omegaM*cos(0.628*t);
+      //omegadI = 6.28;
+      //omegadD = -6.28;
+      
+// -------------------------- Lazo Esclavo I ----------------------------------
+      eI_1 = eI;               
+      eI=omegadI-omegaI;
+      proporcionalI=KPI*eI;
+      if((integralI<VM)&&(integralI>(-VM)))
+              integralI=integralI+KII*Ts*eI;
+           else
+             {
+           if(integralI>=VM)
+            integralI=0.95*VM;
+           if(integralI<=(-VM))
+             integralI=-0.95*VM;
+          }
+      uI=proporcionalI+integralI;
+      //uI=VNM*sin(0.3141*t);
+      //uI=0;
+      //uI=2.0;
+      if(uI>=VM)
+            uI=VM;
+        if(uI<=(-VM))
+             uI=-VM;
+          uRI = v_to_pwm(uI);
+          
+// -------------------------- Lazo Esclavo D ----------------------------------
+      eD_1 = eD;               
+      eD=omegadD-omegaD;
+      proporcionalD=KPD*eD;
+      if((integralD<VM)&&(integralD>(-VM)))
+              integralD=integralD+KID*Ts*eD;
+           else
+             {
+           if(integralD>=VM)
+            integralD=0.95*VM;
+           if(integralD<=(-VM))
+             integralD=-0.95*VM;
+          }
+      uD=proporcionalD+integralD;
+      //uD=VM*sin(0.3141*t);
+      //uD=0;
+      //uD=2.0;
+      if(uD>=VM)
+            uD=VM;
+        if(uD<=(-VM))
+             uD=-VM;
+          uRD = v_to_pwm(uD);
+
+// -------------------------- Salida a PWM ------------------------------------
+      if(urI>=128)
          {
-            if(integral>=VM)
-               integral=0.95*VM;
-            if(integral<=(-VM))
-               integral=-0.95*VM;
+            output_low(pin_E1);
+            output_high(pin_E0);
+            urI=urI-128;
+            pwm2=urI<<1;
          }
-         omegadeseada=proporcional+derivativa+integral;
-         omegadeseada=omegadeseada+omegaA;
-         //omegadeseada=15*sin(6.28*t);
-         //omegadeseada=6.28;
-         //Saturación de omega_d
-         if(omegadeseada > omegaM)
-            omegadeseada = omegaM;
-         if(omegadeseada < -omegaM)
-            omegadeseada = -omegaM;
-         
-         omegadI = KVI*omegadeseada;
-         omegadD = KVD*omegadeseada;
-         
-         //omegadI = omegaM*sin(0.628*t);
-         //omegadD = omegaM*cos(0.628*t);
-         
-         //omegadI = 6.28;
-         //omegadD = -6.28;
-         
-         //Lazo esclavo izquierdo
-         eI_1 = eI;               
-         eI=omegadI-omegaI;
-         proporcionalI=KPI*eI;
-         if((integralI<VM)&&(integralI>(-VM)))
-                 integralI=integralI+KII*Ts*eI;
-              else
-                {
-              if(integralI>=VM)
-               integralI=0.95*VM;
-              if(integralI<=(-VM))
-                integralI=-0.95*VM;
-             }
-         uI=proporcionalI+integralI;
-         //uI=VNM*sin(0.3141*t);
-         //uI=0;
-         //uI=2.0;
-         if(uI>=VM)
-               uI=VM;
-           if(uI<=(-VM))
-                uI=-VM;
-             uRI = v_to_pwm(uI);
-             
-             //Lazo esclavo derecho
-         eD_1 = eD;               
-         eD=omegadD-omegaD;
-         proporcionalD=KPD*eD;
-         if((integralD<VM)&&(integralD>(-VM)))
-                 integralD=integralD+KID*Ts*eD;
-              else
-                {
-              if(integralD>=VM)
-               integralD=0.95*VM;
-              if(integralD<=(-VM))
-                integralD=-0.95*VM;
-             }
-         uD=proporcionalD+integralD;
-         //uD=VM*sin(0.3141*t);
-         //uD=0;
-         //uD=2.0;
-         if(uD>=VM)
-               uD=VM;
-           if(uD<=(-VM))
-                uD=-VM;
-             uRD = v_to_pwm(uD);
+      else
+         {
+            output_high(pin_E1);
+            output_low(pin_E0);
+            pwm2=urI<<1;
+         }
+      // Actualizando el valor del pwm
+      set_pwm2_duty(pwm2);
 
-          t=t+Ts;//t+=Ts;
-      
-         if(urI>=128)
-            {
-               output_low(pin_E1);
-               output_high(pin_E0);
-               urI=urI-128;
-               pwm2=urI<<1;
-            }
-         else
-            {
-               output_high(pin_E1);
-               output_low(pin_E0);
-               pwm2=urI<<1;
-            }
-         set_pwm2_duty(pwm2);   //actualizando el valor del pwm
-
-         if(urD>=128)
-            {
-               output_low(pin_D1);
-               output_high(pin_D0);
-               urD=urD-128;
-               pwm1=urD<<1;
-            }
-         else
-            {
-               output_high(pin_D1);
-               output_low(pin_D0);
-               pwm1=urD<<1;
-            }
-         set_pwm1_duty(pwm1);   //actualizando el valor del pwm
-      
-       //Imprimiendo en pantalla
-       //printf("%.3f\r\n",phi);
-       //printf("%i\t\n", pos);
-       //printf("%.2f\t%.2f\t%.2f\n",t,uI,uD);
-       //printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%d\n",t,uI,uD,omegaI,omegaD,incI,incD);
-       //printf("%.2f\t%d\t%d\n",t,Ax,Gy);
-       //printf("%.3f\t%.3f\t%.3f\t%.3f\n",phid, phi, uI, uD);
-       //printf("%.2f\t%.2f\t%.2f\t%d\t%d\t%d\t%d\n",t,phid,phi,sensor_LI, sensor_LC, sensor_LD, sensor_P);
-               
-      //Escalado de variables
+      if(urD>=128)
+         {
+            output_low(pin_D1);
+            output_high(pin_D0);
+            urD=urD-128;
+            pwm1=urD<<1;
+         }
+      else
+         {
+            output_high(pin_D1);
+            output_low(pin_D0);
+            pwm1=urD<<1;
+         }
+      // Actualizando el valor del pwm
+      set_pwm1_duty(pwm1);
+          
+// --------------------- Escalado de variables --------------------------------
       temp = 128 * phi;
          if (temp < -128 )
             phi_esc = -128;
@@ -488,7 +473,15 @@ int main()
             phi_esc = 127;
          else
             phi_esc = (signed int8)temp;
-
+      
+      temp = 128 * phid;
+         if (temp < -128 )
+            phid_esc = -128;
+         else if (temp > 127)
+            phid_esc = 127;
+         else
+            phid_esc = (signed int8)temp;
+      
       temp = (3.1875 * omegadI) - 0.5;
          if (temp < -128 )
             omegadI_esc = -128;
@@ -497,7 +490,7 @@ int main()
          else
             omegadI_esc = (signed int8)temp;
       
-       temp = (3.1875 * omegaI) - 0.5;
+      temp = (3.1875 * omegaI) - 0.5;
          if (temp < -128 )
             omegaI_esc = -128;
          else if (temp > 127)
@@ -520,7 +513,15 @@ int main()
             omegaD_esc = 127;
          else
             omegaD_esc = (signed int8)temp;
-            
+      
+      temp = (3.1875 * omegaP) - 0.5;
+         if (temp < -128 )
+            omegaP_esc = -128;
+         else if (temp > 127)
+            omegaP_esc = 127;
+         else
+            omegaP_esc = (signed int8)temp;     
+           
       temp = (8.5 * uI) - 0.5;
          if (temp < -128 )
             uI_esc = -128;
@@ -539,33 +540,36 @@ int main()
       
       sensores = sensores + (sensor_P * 8);
       
-      //Mandar a computadora
-      putc(0xAA);             // ID a la PC
-      putc(phi_esc);          // cuentas rueda derecha
-      putc(omegadI_esc);      // cuentas rueda izquierda
-      putc(omegaI_esc);       // Ax high
-      putc(omegadD_esc);      // Ax low
-      putc(omegaD_esc);       // Gy high
-      putc(uI_esc);           // Gy low
-      putc(uD_esc);           // Sensores de seguidor y detector de obstáculo
+// ----------------------------- Salida a PC ----------------------------------
+      putc(0xAA);
+      putc(phi_esc);          
+      putc(omegadI_esc);      
+      putc(omegaI_esc);       
+      putc(omegadD_esc);      
+      putc(omegaD_esc);       
+      putc(uI_esc);           
+      putc(uD_esc);           
       putc(sensores);
-      
-      if (TMR0L > 196)
+      putc(phid_esc);
+      putc(omegaP_esc);
+
+// ------------------------- Tiempo de muestreo -------------------------------     
+      //Indicador de sobrepase de Ts
+      if (TMR0L > 196)        
       {
          output_high (PIN_D2);
          output_high (PIN_D3);
       }
       
+      // Espera mientas el timer 0 sea menor 196 para un Ts de 10ms
       else
       {
-      do
-         {
-         }
-         while(TMR0L < 196); // Espera mientas el timer 0 sea menor 196 para un Ts de 10ms
+         do{}
+         while(TMR0L < 196); 
       }
       TMR0L = 0;
    }
-return 0;
+   return 0;
 }
 
 unsigned int v_to_pwm(float voltage)

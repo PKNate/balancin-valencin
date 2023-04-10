@@ -4,7 +4,7 @@ clear all;
 close all;
 %leyendo las muestras tomadas al sistema
 fid=fopen('datos.TXT','r');
-datos=fscanf(fid, '%f', [13 inf]);    % datos tiene 12 renglones
+datos=fscanf(fid, '%f', [15 inf]);    % datos tiene 15 renglones
 fclose(fid);
 t=datos(1,:); 
 phid=datos(2,:);
@@ -19,6 +19,8 @@ sI=datos(10,:);
 sC=datos(11,:);
 sD=datos(12,:);
 sP=datos(13,:);
+omegaP=datos(14,:);
+omegadP=datos(15,:);
 
 figure(1)
 subplot(6,1,1)
@@ -50,4 +52,9 @@ subplot(6,1,6)
 plot(t,sI,t,sC,t,sD,t,sP);
 set(legend('$sI$','$sC$','$sD$','$sP$'), 'interpreter', 'latex')
 xlabel('$t[s]$', 'interpreter', 'latex')
+grid on;
+
+subplot(6,1,7)
+plot(t,omegadP,t,omegaP);
+set(legend('$\omega_{dP}[\frac{rad}{s}]$','$\omega_P[\frac{rad}{s}]$'), 'interpreter', 'latex')
 grid on;

@@ -13,7 +13,8 @@
 //Variables para recibir datos
 unsigned char flagcom=0,flagfile=0; //de 8 bits
 signed char temp=0;
-float t=0,phid=-0.1485,phi=0,omegadI=0,omegaI=0,omegadD=0,omegaD=0,uI=0,uD=0;
+float omegadP=10.0;
+float t=0,phid=0,phi=0,omegadI=0,omegaI=0,omegadD=0,omegaD=0,omegaP=0,uI=0,uD=0;
 int recibido=0;
 
 // Sensores
@@ -120,25 +121,30 @@ int main()
    				{
         			temp = recibido;
         			uD = (0.1176 * temp) + 0.0588;
-   				} 	   				
-   				if(flagcom==9)
+   				}
+				if(flagcom==9)
    				{
-   					// Leer sensores de seguidor y de obstáculo.
 					sensores=recibido;
-					// Convertir el valor de los sensores a bits separados.
 					sensor_P =(sensores & 0x08)>>3;
 					sensor_LI=(sensores & 0x04)>>2;
 					sensor_LC=(sensores & 0x02)>>1;
-					sensor_LD=(sensores & 0x01);
-					
-					if (sensor_P == true)
-						phid = -0.430;
+					sensor_LD=(sensores & 0x01);;
+   				} 
+				if(flagcom==10)
+   				{
+        			temp = recibido;
+        			phid = (0.0078431373 * temp) + 0.0039215686;
+   				}       	   				
+   				if(flagcom==11)
+   				{
+					temp = recibido;
+        			omegaP = (0.3137 * temp) + 0.1569;
 					
 					//Imprimir en monitor
 					printf("%.2f\t%.3f\t%.3f\n",t,phid,phi);
 					
 					//Guardar en archivo
-	    			fprintf(fp,"%.2f\t%.3f\t%.3f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%i\t%i\t%i\t%i\n",t,phid,phi,omegadI,omegaI,omegadD,omegaD,uI,uD,sensor_LI,sensor_LC,sensor_LD,sensor_P);
+	    			fprintf(fp,"%.2f\t%.3f\t%.3f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%i\t%i\t%i\t%i\t%.2f\t%.2f\n",t,phid,phi,omegadI,omegaI,omegadD,omegaD,uI,uD,sensor_LI,sensor_LC,sensor_LD,sensor_P,omegaP,omegadP);
 	    			t=t+Ts;
 	    			flagcom=0;
 				}
