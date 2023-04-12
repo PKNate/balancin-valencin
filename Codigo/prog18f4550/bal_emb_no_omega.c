@@ -60,16 +60,17 @@ float KII = 8.0;     //8.0;
 float KPD = 2.0;     //1.4;
 float KID = 8.0;     //2.0 //8.0;
 
-float KPP = 0.05;
-float KDP = 0.0001;
-float KIP = 0.01;
-float omegaP_d = 2.0;
+float KPP = 0.93;    //0.83
+float KDP = 0.001;
+float KIP = 50.0;
+float omegaP_d = 1.5;
 
 //-0.1495; //-0.1485; //-0.1435; //-0.1375; //-0.1335;//-0.108;
-float phi_max = -0.1495;
-float phi_min = -0.5330;
+float phi_min = 14.95;
+float phi_max = 43.00;
+float lim_eiP = 8.50;
 
-float VM = 10.37;
+float VM = 10.37; //10.37
 float omegaM = 20.0;
 
 float deg_2_rad = 3.141593/180;
@@ -88,16 +89,16 @@ signed int incD,incI;
 // Valores del MPU
 signed long int Ax,Gy;
 // Variables para filtro complementario y ángulos
-float Xa, Yg, phid=phi_max, phi=0;
+float Xa, Yg, phid=0, phi=0;
 float accelx=0, angulox=0, angulox_1=0;
 // Variables auxiliares
-float iTs=1/Ts, esc=pi_/(2*ppr*NR), escs=127.0/VM;
+float iTs=1/Ts, esc=pi_/(2*ppr*NR), escs=127.0/VM, t=0;
 // Velocidades deseadas
 float omegadD=0, omegadI=0;
 // Velocidades
 float omegaD=0,omegaI=0,omegaP=0;
 // Errores actuales y anteriores
-float eD,eD_1=0,eI,eI_1=0,e,e_1=0,eP,eP_1=0; 
+float eD,eD_1=0,eI,eI_1=0,e,e_1=0,eP=0,eiP=0,eP_1=0; 
 // Omega deseada
 float omegadeseada=0;
 // Esfuerzos de control
@@ -111,10 +112,9 @@ short int sensor_LI = 0;
 short int sensor_LD = 0;
 short int sensor_LC = 0;
 short int sensor_P = 0;
-
+short rampa = 0;
 // Componentes controladores
-float proporcional=0, derivativa=0, proporcionalD=0, integralD=0,
-proporcionalI=0, integralI=0, proporcionalP=0, derivativaP=0, integralP=0;
+float proporcional=0, derivativa=0, proporcionalD=0, integralD=0, proporcionalI=0, integralI=0, proporcionalP=0, derivativaP=0, integralP=0;
 float integral = 0;
 
 // ---------------------------- Variables a usar ------------------------------
@@ -128,8 +128,7 @@ signed int8 A_data_z[2];
 signed int8 G_data_y[2];                                       
 
 // Variables para el escalado.
-signed int8 phi_esc=0, phid_esc=0, omegadI_esc=0, omegaI_esc=0, omegadD_esc=0,
-omegaD_esc=0, omegaP_esc=0, uI_esc=0, uD_esc=0;
+signed int8 phi_esc=0, phid_esc=0, omegadI_esc=0, omegaI_esc=0, omegadD_esc=0, omegaD_esc=0, omegaP_esc=0, uI_esc=0, uD_esc=0;
 float temp;
 
 // Funcion para escribir al MPU6050
@@ -318,46 +317,69 @@ int main()
       phi=angulox*deg_2_rad;
       // Promedio velocidad
       omegaP = ((omegaD / KVD) + (omegaI / KVI))/2.0;
-      // Calcular el error de omega
-      eP_1 = eP;
-      eP = omegaP_d-omegaP;
-      eP = eP * (-1.0);
+
+      
       
 // -------------------------- Lazo Inclinacion --------------------------------   
-      proporcionalP=KPP*eP;
-      derivativaP=KDP*(eP-eP_1)*iTs;
-      if((integralP < phi_max) && (integralP > phi_min))
-         integralP=integralP+KIP*Ts*eP;
+      
+      if(t>2.0)   
+      {  
+         // Calcular el error de omega
+         eP_1 = eP;
+         eP = omegaP_d-omegaP;
+         eiP = eiP + (eP * Ts);
+         
+         if(eiP > lim_eiP)
+            eiP = lim_eiP;
+         else if (eiP < 0)
+            eiP = 0;
+         
+         integralP      = KIP*eiP;
+         proporcionalP  = KPP*eP;
+         derivativaP    = KDP*(eP-eP_1)*iTs;
+         output_high (PIN_D3);
+      }
       else
       {
-         if(integralP>=phi_max)
-            integralP=0.95*phi_max;
-         if(integralP<=phi_min)
-            integralP=-0.95*phi_min;
+         integralP      = 0; 
+         proporcionalP  = 0;
+         derivativaP    = 0;
+         t              = t+Ts;
       }
-      phid=proporcionalP+derivativaP+integralP;
+      
+      phid=proporcionalP+derivativaP+integralP+phi_min;
+      
       //Saturacion de phid
       if(phid > phi_max)
          phid = phi_max;
       if(phid < phi_min)
          phid = phi_min;
-         
+      
+      phid = (phid * -0.01);
+        
       // Calcular el error de angulo
       e_1 = e;
       e=phid-phi;    
  
 // ------------------------- Seguidor de linea --------------------------------  
-      if(sensor_LI && !sensor_LD)
-         if(sensor_LC)   {KVI=0.7; KVD=1.8;}   //0.8, 1.4
-         else            {KVI=0.4; KVD=2.2;}   //0.7, 1.6
-         
-      else if(!sensor_LI && sensor_LD)
-         if(sensor_LC)   {KVI=1.8; KVD=0.7;}
-         else            {KVI=2.2; KVD=0.4;}
-                   
+      
+      if(omegaP > 0.0 && omegaP < 10.0 && rampa == 0)
+      {
+         if(sensor_LI && !sensor_LD)
+            if(sensor_LC)   {KVI=0.7; KVD=1.8;}   //0.8, 1.4
+            else            {KVI=0.4; KVD=2.2;}   //0.7, 1.6
+            
+         else if(!sensor_LI && sensor_LD)
+            if(sensor_LC)   {KVI=1.8; KVD=0.7;}
+            else            {KVI=2.2; KVD=0.4;}
+         else
+            {KVI=1.0; KVD=1.0;} 
+      }             
+      else if (omegaP < -5.0 && t > 2.0)
+         {KVI=1.0; KVD=1.0; rampa=1; output_high (PIN_D2);} 
       else
          {KVI=1.0; KVD=1.0;}  
-     
+
 // -------------------------- Lazo Maestro ------------------------------------
       proporcional=KP*e;
       derivativa=KD*(e-e_1)*iTs;

@@ -13,7 +13,7 @@
 //Variables para recibir datos
 unsigned char flagcom=0,flagfile=0; //de 8 bits
 signed char temp=0;
-float omegadP=10.0;
+float omegadP=1.5;
 float t=0,phid=0,phi=0,omegadI=0,omegaI=0,omegadD=0,omegaD=0,omegaP=0,uI=0,uD=0;
 int recibido=0;
 
@@ -121,7 +121,7 @@ int main()
    				{
         			temp = recibido;
         			uD = (0.1176 * temp) + 0.0588;
-   				}
+   				} 
 				if(flagcom==9)
    				{
 					sensores=recibido;
