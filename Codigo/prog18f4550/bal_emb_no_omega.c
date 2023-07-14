@@ -60,15 +60,17 @@ float KII = 8.0;     //8.0;
 float KPD = 2.0;     //1.4;
 float KID = 8.0;     //2.0 //8.0;
 
-float KPP = 0.93;    //0.83
+float KPP = 0.83;    //0.83
 float KDP = 0.001;
-float KIP = 50.0;
-float omegaP_d = 1.5;
+float KIP = 20.0; //10.0
+float omegaP_d = 1.0;
+float tiemporampamax = 1.5;
+float tiempolinea = 0.5;
 
 //-0.1495; //-0.1485; //-0.1435; //-0.1375; //-0.1335;//-0.108;
-float phi_min = 14.95;
-float phi_max = 43.00;
-float lim_eiP = 8.50;
+float phi_min = 14.45;
+float phi_max = 55.00; //53.00
+float lim_eiP = 9.00;
 
 float VM = 10.37; //10.37
 float omegaM = 20.0;
@@ -89,7 +91,7 @@ signed int incD,incI;
 // Valores del MPU
 signed long int Ax,Gy;
 // Variables para filtro complementario y ángulos
-float Xa, Yg, phid=0, phi=0;
+float Xa, Yg, phid=phi_min, phi=0;
 float accelx=0, angulox=0, angulox_1=0;
 // Variables auxiliares
 float iTs=1/Ts, esc=pi_/(2*ppr*NR), escs=127.0/VM, t=0;
@@ -112,10 +114,11 @@ short int sensor_LI = 0;
 short int sensor_LD = 0;
 short int sensor_LC = 0;
 short int sensor_P = 0;
-short rampa = 0;
+short rampa = 0, linea = 1;
 // Componentes controladores
 float proporcional=0, derivativa=0, proporcionalD=0, integralD=0, proporcionalI=0, integralI=0, proporcionalP=0, derivativaP=0, integralP=0;
 float integral = 0;
+float tiemporampa = 0;
 
 // ---------------------------- Variables a usar ------------------------------
 int8 urI=0 ,urD=0;                                             
@@ -128,8 +131,12 @@ signed int8 A_data_z[2];
 signed int8 G_data_y[2];                                       
 
 // Variables para el escalado.
-signed int8 phi_esc=0, phid_esc=0, omegadI_esc=0, omegaI_esc=0, omegadD_esc=0, omegaD_esc=0, omegaP_esc=0, uI_esc=0, uD_esc=0;
+signed int8 phi_esc=0, phid_esc=0, omegadI_esc=0, omegaI_esc=0, omegadD_esc=0, omegaD_esc=0, omegaP_esc=0, omegaPF_esc=0, uI_esc=0, uD_esc=0;
 float temp;
+
+// Filtro pasabajas digital
+float fc = 2.0;
+float a=6.28*fc,aT,f1,f2,omegaPF,omegaPF_1,omegaP_1;
 
 // Funcion para escribir al MPU6050
 void MPU6050_write(int add, int data)
@@ -318,15 +325,23 @@ int main()
       // Promedio velocidad
       omegaP = ((omegaD / KVD) + (omegaI / KVI))/2.0;
 
+// ---------------------------- Filtro digital -------------------------------- 
+      omegaP_1=omegaP;
       
+      //Algoritmo 
+      omegaPF_1=omegaPF;
+      omegaPF=f1*(omegaP+omegaP_1)+f2*omegaPF_1;
       
+      aT=a*Ts;
+      f1=aT/(aT+2);
+      f2=-(aT-2)/(aT+2);
 // -------------------------- Lazo Inclinacion --------------------------------   
-      
+
       if(t>2.0)   
       {  
          // Calcular el error de omega
          eP_1 = eP;
-         eP = omegaP_d-omegaP;
+         eP = omegaP_d-omegaPF;
          eiP = eiP + (eP * Ts);
          
          if(eiP > lim_eiP)
@@ -339,6 +354,7 @@ int main()
          derivativaP    = KDP*(eP-eP_1)*iTs;
          output_high (PIN_D3);
       }
+      
       else
       {
          integralP      = 0; 
@@ -355,28 +371,62 @@ int main()
       if(phid < phi_min)
          phid = phi_min;
       
-      phid = (phid * -0.01);
-        
+      
+      //Subida de rampa
+      if (rampa == 1 && tiemporampa < tiemporampamax)
+      {
+         //phid = phi_max;
+         tiemporampa = tiemporampa + Ts;
+         omegaP_d = 10.0;
+         output_high (PIN_D2);
+         
+      }
+      
+      else if (tiemporampa > tiemporampamax)
+      {
+         rampa = 0;
+         tiemporampa = 0;
+         omegaP_d = 1.0;
+         output_low (PIN_D2);
+      }      
+      
+      phid = phid * (-0.01);
+      
       // Calcular el error de angulo
       e_1 = e;
       e=phid-phi;    
- 
+
 // ------------------------- Seguidor de linea --------------------------------  
       
-      if(omegaP > 0.0 && omegaP < 10.0 && rampa == 0)
+      if(omegaP > 0.0 && omegaP < 10.0 && rampa == 0 && phid > -0.35)
       {
          if(sensor_LI && !sensor_LD)
-            if(sensor_LC)   {KVI=0.7; KVD=1.8;}   //0.8, 1.4
-            else            {KVI=0.4; KVD=2.2;}   //0.7, 1.6
+            if(sensor_LC)   {KVI=0.7; KVD=1.8;}   //0.7, 1.8
+            else            {KVI=0.4; KVD=2.2;}   //0.4, 2.2
             
          else if(!sensor_LI && sensor_LD)
-            if(sensor_LC)   {KVI=1.8; KVD=0.7;}
+            if(sensor_LC)   {KVI=1.8; KVD=0.7;}   //3.5, 0.3, 5.5, 0.2
             else            {KVI=2.2; KVD=0.4;}
          else
             {KVI=1.0; KVD=1.0;} 
-      }             
-      else if (omegaP < -5.0 && t > 2.0)
-         {KVI=1.0; KVD=1.0; rampa=1; output_high (PIN_D2);} 
+      }
+     /* 
+      else if(omegaP > 0.0 && rampa == 1)
+      {
+         if(sensor_LI && !sensor_LD)
+            if(sensor_LC)   {KVI=0.7; KVD=1.4;}   //0.9, 1.1
+            else            {KVI=0.7; KVD=1.7;}   //0.9, 1.2
+            
+         else if(!sensor_LI && sensor_LD)
+            if(sensor_LC)   {KVI=1.4; KVD=0.7;}   
+            else            {KVI=1.7; KVD=0.7;}
+         else
+            {KVI=1.0; KVD=1.0;} 
+      }   
+      */
+      else if (omegaP < -6.0 && t > 2.0)
+         {KVI=1.0; KVD=1.0; rampa=1;} 
+         
       else
          {KVI=1.0; KVD=1.0;}  
 
@@ -488,8 +538,10 @@ int main()
          }
       // Actualizando el valor del pwm
       set_pwm1_duty(pwm1);
-          
+
+        
 // --------------------- Escalado de variables --------------------------------
+      /*
       temp = 128 * phi;
          if (temp < -128 )
             phi_esc = -128;
@@ -544,7 +596,15 @@ int main()
          else if (temp > 127)
             omegaP_esc = 127;
          else
-            omegaP_esc = (signed int8)temp;     
+            omegaP_esc = (signed int8)temp;    
+            
+      temp = (3.1875 * omegaPF) - 0.5;
+         if (temp < -128 )
+            omegaPF_esc = -128;
+         else if (temp > 127)
+            omegaPF_esc = 127;
+         else
+            omegaPF_esc = (signed int8)temp;        
            
       temp = (8.5 * uI) - 0.5;
          if (temp < -128 )
@@ -576,13 +636,14 @@ int main()
       putc(sensores);
       putc(phid_esc);
       putc(omegaP_esc);
-
+      putc(omegaPF_esc);
+      */
 // ------------------------- Tiempo de muestreo -------------------------------     
       //Indicador de sobrepase de Ts
       if (TMR0L > 196)        
       {
-         output_high (PIN_D2);
-         output_high (PIN_D3);
+         //output_high (PIN_D2);
+         //output_high (PIN_D3);
       }
       
       // Espera mientas el timer 0 sea menor 196 para un Ts de 10ms

@@ -4,7 +4,7 @@ clear all;
 close all;
 %leyendo las muestras tomadas al sistema
 fid=fopen('datos.TXT','r');
-datos=fscanf(fid, '%f', [15 inf]);    % datos tiene 15 renglones
+datos=fscanf(fid, '%f', [16 inf]);    % datos tiene 15 renglones
 fclose(fid);
 t=datos(1,:); 
 phid=datos(2,:);
@@ -21,6 +21,7 @@ sD=datos(12,:);
 sP=datos(13,:);
 omegaP=datos(14,:);
 omegadP=datos(15,:);
+omegaPF=datos(16,:);
 
 figure(1)
 subplot(6,1,1)
@@ -29,8 +30,8 @@ set(legend('$\phi_d[rad]$','$\phi[rad]$'), 'interpreter', 'latex')
 grid on;
 
 subplot(6,1,2)
-plot(t,omegadI,t,omegaI,t,omegadP,t,omegaP);
-set(legend('$\omega_{dI}[\frac{rad}{s}]$','$\omega_I[\frac{rad}{s}]$','$\omega_{dP}[\frac{rad}{s}]$','$\omega_P[\frac{rad}{s}]$'), 'interpreter', 'latex')
+plot(t,omegadI,t,omegaI,t,omegadP,t,omegaP,t,omegaPF);
+set(legend('$\omega_{dI}[\frac{rad}{s}]$','$\omega_I[\frac{rad}{s}]$','$\omega_{dP}[\frac{rad}{s}]$','$\omega_P[\frac{rad}{s}]$','$\omega_PF[\frac{rad}{s}]$'), 'interpreter', 'latex')
 grid on;
 
 subplot(6,1,3)
@@ -39,8 +40,8 @@ set(legend('$u_I[V]$'), 'interpreter', 'latex')
 grid on;
 
 subplot(6,1,4)
-plot(t,omegadD,t,omegaD,t,omegadP,t,omegaP);
-set(legend('$\omega_{dD}[\frac{rad}{s}]$','$\omega_D[\frac{rad}{s}]$','$\omega_{dP}[\frac{rad}{s}]$','$\omega_P[\frac{rad}{s}]$'), 'interpreter', 'latex')
+plot(t,omegadD,t,omegaD,t,omegadP,t,omegaP,t,omegaPF);
+set(legend('$\omega_{dD}[\frac{rad}{s}]$','$\omega_D[\frac{rad}{s}]$','$\omega_{dP}[\frac{rad}{s}]$','$\omega_P[\frac{rad}{s}]$','$\omega_PF[\frac{rad}{s}]$'), 'interpreter', 'latex')
 grid on;
 
 subplot(6,1,5)

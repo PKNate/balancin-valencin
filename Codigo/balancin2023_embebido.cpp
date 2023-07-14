@@ -14,7 +14,7 @@
 unsigned char flagcom=0,flagfile=0; //de 8 bits
 signed char temp=0;
 float omegadP=1.5;
-float t=0,phid=0,phi=0,omegadI=0,omegaI=0,omegadD=0,omegaD=0,omegaP=0,uI=0,uD=0;
+float t=0,phid=0,phi=0,omegadI=0,omegaI=0,omegadD=0,omegaD=0,omegaP=0,omegaPF=0,uI=0,uD=0;
 int recibido=0;
 
 // Sensores
@@ -134,17 +134,22 @@ int main()
    				{
         			temp = recibido;
         			phid = (0.0078431373 * temp) + 0.0039215686;
-   				}       	   				
-   				if(flagcom==11)
+   				}
+				if(flagcom==11)
+   				{
+        			temp = recibido;
+        			omegaP = (0.3137 * temp) + 0.1569;
+   				}         	   				
+   				if(flagcom==12)
    				{
 					temp = recibido;
-        			omegaP = (0.3137 * temp) + 0.1569;
+        			omegaPF = (0.3137 * temp) + 0.1569;
 					
 					//Imprimir en monitor
 					printf("%.2f\t%.3f\t%.3f\n",t,phid,phi);
 					
 					//Guardar en archivo
-	    			fprintf(fp,"%.2f\t%.3f\t%.3f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%i\t%i\t%i\t%i\t%.2f\t%.2f\n",t,phid,phi,omegadI,omegaI,omegadD,omegaD,uI,uD,sensor_LI,sensor_LC,sensor_LD,sensor_P,omegaP,omegadP);
+	    			fprintf(fp,"%.2f\t%.3f\t%.3f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%i\t%i\t%i\t%i\t%.2f\t%.2f\t%.2f\n",t,phid,phi,omegadI,omegaI,omegadD,omegaD,uI,uD,sensor_LI,sensor_LC,sensor_LD,sensor_P,omegaP,omegadP,omegaPF);
 	    			t=t+Ts;
 	    			flagcom=0;
 				}
